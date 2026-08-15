@@ -98,6 +98,49 @@ const ServersPage = () => {
     }
   };
 
+  const handleBuyWithTon = async (server: Server) => {
+    const price = Number(server.price_ton);
+    setTonBusy(server.id);
+    try {
+      const transaction = await sendTonPayment(tonConnectUI, {
+        amountTon: price,
+        comment: `Nova ${server.name}`,
+      });
+
+      toast({ title: "Verifying payment...", description: "Checking blockchain confirmation" });
+      const verification = await verifyTonOnChain(price, transaction.boc);
+      if (!verification.verified) {
+        toast({ title: "Verification failed", description: "Transaction not found on blockchain.", variant: "destructive" });
+        return;
+      }
+
+      await purchaseServerForTelegram({
+        telegramId: user.telegramUser.id,
+        serverId: server.id,
+        tonPaid: price,
+        walletAddress,
+        txHash: verification.tx_hash || transaction?.boc,
+      });
+
+      await refreshProfile();
+      toast({ title: "Purchase complete", description: `${server.name} added successfully` });
+    } catch (err) {
+      if (err instanceof PaymentError) {
+        toast({
+          title: err.code === "not_connected" ? "Wallet not connected" : "Payment failed",
+          description: err.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Purchase failed", description: "Please try again", variant: "destructive" });
+    } finally {
+      setTonBusy(null);
+    }
+  };
+
+
+
   if (loading) {
     return <div className="min-h-screen bg-gradient-dark flex items-center justify-center"><div className="text-muted-foreground font-display animate-pulse">Loading...</div></div>;
   }
