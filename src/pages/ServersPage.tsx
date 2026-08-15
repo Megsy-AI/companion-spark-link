@@ -11,10 +11,14 @@ import { swr } from "@/lib/cache";
 import CachedImage from "@/components/CachedImage";
 import { payWithStars, starsForTon } from "@/lib/stars";
 import TelegramStar from "@/components/TelegramStar";
+import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
+import { PaymentError, sendTonPayment } from "@/lib/ton";
+import { purchaseServerForTelegram, verifyTonOnChain } from "@/lib/game-api";
 
 
 const TON_ICON = "/images/gram-icon.png";
 const USDT_ICON = "/images/usdt.png";
+
 
 interface Server {
   id: string;
@@ -36,6 +40,10 @@ const ServersPage = () => {
   const [loading, setLoading] = useState(true);
   const [myNfts, setMyNfts] = useState<{ id: string; name: string; image_url: string }[]>([]);
   const [starBusy, setStarBusy] = useState<string | null>(null);
+  const [tonBusy, setTonBusy] = useState<string | null>(null);
+  const [tonConnectUI] = useTonConnectUI();
+  const walletAddress = useTonAddress();
+
 
   useEffect(() => { void loadServers(); void loadMyNfts(); }, []);
 
@@ -90,6 +98,49 @@ const ServersPage = () => {
     }
   };
 
+  const handleBuyWithTon = async (server: Server) => {
+    const price = Number(server.price_ton);
+    setTonBusy(server.id);
+    try {
+      const transaction = await sendTonPayment(tonConnectUI, {
+        amountTon: price,
+        comment: `Nova ${server.name}`,
+      });
+
+      toast({ title: "Verifying payment...", description: "Checking blockchain confirmation" });
+      const verification = await verifyTonOnChain(price, transaction.boc);
+      if (!verification.verified) {
+        toast({ title: "Verification failed", description: "Transaction not found on blockchain.", variant: "destructive" });
+        return;
+      }
+
+      await purchaseServerForTelegram({
+        telegramId: user.telegramUser.id,
+        serverId: server.id,
+        tonPaid: price,
+        walletAddress,
+        txHash: verification.tx_hash || transaction?.boc,
+      });
+
+      await refreshProfile();
+      toast({ title: "Purchase complete", description: `${server.name} added successfully` });
+    } catch (err) {
+      if (err instanceof PaymentError) {
+        toast({
+          title: err.code === "not_connected" ? "Wallet not connected" : "Payment failed",
+          description: err.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Purchase failed", description: "Please try again", variant: "destructive" });
+    } finally {
+      setTonBusy(null);
+    }
+  };
+
+
+
   if (loading) {
     return <div className="min-h-screen bg-gradient-dark flex items-center justify-center"><div className="text-muted-foreground font-display animate-pulse">Loading...</div></div>;
   }
@@ -143,9 +194,27 @@ const ServersPage = () => {
                   </span>
                 </div>
               </div>
+              <div className="mt-auto space-y-1.5">
               <Button
                 size="sm"
-                className="mt-auto w-full rounded-xl font-display text-xs glow-primary"
+                variant="outline"
+                className="w-full rounded-xl font-display text-xs"
+                onClick={() => void handleBuyWithTon(server)}
+                disabled={tonBusy === server.id}
+              >
+                {tonBusy === server.id ? (
+                  <span className="animate-pulse">Processing…</span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <img src={TON_ICON} alt="Gram" className="w-3 h-3 rounded-full" loading="lazy" decoding="async" />
+                    {Number(server.price_ton)} TON
+                  </span>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                className="w-full rounded-xl font-display text-xs glow-primary"
+
                 onClick={() => void handleBuyWithStars(server)}
                 disabled={starBusy === server.id}
               >
@@ -158,7 +227,9 @@ const ServersPage = () => {
                   </span>
                 )}
               </Button>
+              </div>
             </motion.div>
+
           ))}
         </div>
       )}
