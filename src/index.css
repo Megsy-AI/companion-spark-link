@@ -96,7 +96,7 @@
   }
   body {
     @apply text-foreground font-sans;
-    background-color: hsl(var(--background));
+    background: transparent;
     font-family: 'Inter', sans-serif;
     overflow-x: hidden;
     -webkit-user-select: none;
@@ -199,7 +199,7 @@
 
   /* ---- Black + mint hero ---- */
   .hero-dark {
-    background-color: hsl(var(--background));
+    background-color: transparent;
     color: hsl(160 22% 18%);
   }
   .hero-title {

@@ -406,7 +406,7 @@ export default function AiPage() {
   };
 
   return (
-    <div className="hero-dark relative flex min-h-[100dvh] flex-col bg-background">
+    <div className="hero-dark relative flex min-h-[100dvh] flex-col">
       {/* soft mint / pink wash matching the rest of the app */}
       <div
         aria-hidden="true"
