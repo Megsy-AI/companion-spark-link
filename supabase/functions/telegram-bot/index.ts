@@ -268,7 +268,133 @@ serve(async (req) => {
       return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
+    // ---- Telegram Stars payments ----
+    const STARS_PRODUCTS: Record<string, { id: string; title: string; description: string; stars: number; usdt: number; aiPro?: boolean }> = {
+      ai_pro: { id: 'ai_pro', title: 'Nova AI Pro — 30 days', description: 'Unlimited chat, images and videos for 30 days.', stars: 667, usdt: 0, aiPro: true },
+      usdt_5: { id: 'usdt_5', title: '5 USDT top-up', description: 'Add 5 USDT to your in-game balance.', stars: 334, usdt: 5 },
+      usdt_10: { id: 'usdt_10', title: '10 USDT top-up', description: 'Add 10 USDT to your in-game balance.', stars: 667, usdt: 10 },
+      usdt_25: { id: 'usdt_25', title: '25 USDT top-up', description: 'Add 25 USDT to your in-game balance.', stars: 1667, usdt: 25 },
+    };
+    const starsForTon = (priceTon: number) => Math.max(1, Math.round((priceTon * 3.5) / 0.015));
+
+    if (body.pre_checkout_query) {
+      await tg('answerPreCheckoutQuery', { pre_checkout_query_id: body.pre_checkout_query.id, ok: true });
+      return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const successfulPayment = body.message?.successful_payment;
+    if (successfulPayment) {
+      const payload = String(successfulPayment.invoice_payload ?? '');
+      const { data: rows } = await supabase.from('star_payments').select('*').eq('payload', payload).limit(1);
+      const row = rows?.[0];
+
+      if (row && row.status !== 'paid') {
+        if (String(row.product).startsWith('server:')) {
+          const serverId = String(row.product).slice('server:'.length);
+          const { data: server } = await supabase.from('servers').select('price_ton').eq('id', serverId).maybeSingle();
+          await supabase.rpc('purchase_server_for_telegram', {
+            _telegram_id: row.telegram_id,
+            _server_id: serverId,
+            _ton_paid: Number(server?.price_ton ?? 0),
+            _wallet_address: null,
+            _tx_hash: successfulPayment.telegram_payment_charge_id ?? null,
+          });
+        }
+
+        const product = STARS_PRODUCTS[row.product];
+        if (product?.aiPro) {
+          await supabase.rpc('ai_activate_plan', { _profile_id: row.profile_id, _plan: 'unlimited', _price: 0 });
+        }
+        if (product && product.usdt > 0) {
+          const { data: profile } = await supabase.from('profiles').select('usdt_balance').eq('id', row.profile_id).maybeSingle();
+          await supabase
+            .from('profiles')
+            .update({ usdt_balance: Number(profile?.usdt_balance ?? 0) + product.usdt })
+            .eq('id', row.profile_id);
+        }
+
+        await supabase
+          .from('star_payments')
+          .update({
+            status: 'paid',
+            paid_at: new Date().toISOString(),
+            charge_id: successfulPayment.telegram_payment_charge_id ?? null,
+            meta: successfulPayment,
+          })
+          .eq('id', row.id);
+
+        await tg('sendMessage', {
+          chat_id: body.message.chat.id,
+          text: `✅ Payment received — ${product?.title ?? row.product} is now active.`,
+        });
+      }
+
+      return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    if (body.action === 'starsInvoice') {
+      const profileId = typeof body.profileId === 'string' ? body.profileId : null;
+      const telegramId = Number(body.telegramId) || null;
+      if (!profileId) {
+        return new Response(JSON.stringify({ error: 'Missing profile' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const requested = String(body.product ?? '');
+      let product = STARS_PRODUCTS[requested];
+
+      if (!product && requested === 'server') {
+        const serverId = String(body.serverId ?? '');
+        const { data: server } = serverId
+          ? await supabase.from('servers').select('id, name, price_ton, is_active').eq('id', serverId).maybeSingle()
+          : { data: null as any };
+        if (!server || !server.is_active) {
+          return new Response(JSON.stringify({ error: 'Server not found' }), { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        product = {
+          id: `server:${server.id}`,
+          title: `${server.name} — mining server`,
+          description: `Unlock the ${server.name} mining server.`,
+          stars: starsForTon(Number(server.price_ton)),
+          usdt: 0,
+        };
+      }
+
+      if (!product) {
+        return new Response(JSON.stringify({ error: 'Unknown product' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const payload = `${product.id}:${crypto.randomUUID()}`;
+      const { error: insErr } = await supabase.from('star_payments').insert({
+        profile_id: profileId,
+        telegram_id: telegramId,
+        product: product.id,
+        stars: product.stars,
+        payload,
+        status: 'pending',
+      });
+      if (insErr) {
+        return new Response(JSON.stringify({ error: insErr.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      const invoice = await tg('createInvoiceLink', {
+        title: product.title.slice(0, 32),
+        description: product.description.slice(0, 255),
+        payload,
+        currency: 'XTR',
+        prices: [{ label: product.title.slice(0, 32), amount: product.stars }],
+      });
+
+      if (!invoice?.ok) {
+        return new Response(JSON.stringify({ error: invoice?.description ?? 'Could not create invoice' }), { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+
+      return new Response(JSON.stringify({ url: invoice.result, payload, stars: product.stars }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (body.update_id) {
+
       const message = body.message;
       if (!message) {
         return new Response(JSON.stringify({ ok: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
