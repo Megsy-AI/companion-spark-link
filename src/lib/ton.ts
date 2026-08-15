@@ -113,11 +113,17 @@ export const sendTonPayment = async (
     throw new PaymentError("not_connected", "Connect your wallet first");
   }
 
-  const account = tonConnectUI.account;
+  // Right after a fresh connection the account object can still be empty for a
+  // moment (the bridge is restoring the session). Wait for it instead of failing.
+  let account = tonConnectUI.account;
+  for (let i = 0; i < 20 && !account?.address; i++) {
+    await new Promise((r) => setTimeout(r, 250));
+    account = tonConnectUI.account;
+  }
   if (!account?.address) {
     throw new PaymentError("not_connected", "Reconnect your wallet and try again");
   }
-  if (account.chain !== "-239") {
+  if (account.chain && account.chain !== "-239") {
     throw new PaymentError("wrong_network", "Switch your wallet to TON Mainnet and try again");
   }
 
@@ -132,10 +138,10 @@ export const sendTonPayment = async (
   };
 
   try {
+    // No `from` / `network` fields: some wallets reject the request when the
+    // address format they report differs from the one we echo back.
     const result = await tonConnectUI.sendTransaction({
-      network: "-239",
-      from: account.address,
-      validUntil: Math.floor(Date.now() / 1000) + 300,
+      validUntil: Math.floor(Date.now() / 1000) + 600,
       messages: [message],
     });
     if (!result?.boc) {
