@@ -6,7 +6,7 @@ import {
   json,
   loadSubscription,
   sleep,
-} from "../_shared/ai.ts";
+} from "./shared.ts";
 
 const PREMIUM_MODELS = new Set(["hd", "cinematic", "video-hd", "video-cinematic"]);
 

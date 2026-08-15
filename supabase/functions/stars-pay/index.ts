@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, starsApi, STARS_BOT_TOKEN, STARS_PRODUCTS, starsForTon } from "../_shared/stars.ts";
+import { corsHeaders, starsApi, STARS_BOT_TOKEN, STARS_PRODUCTS, starsForTon } from "./shared.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });

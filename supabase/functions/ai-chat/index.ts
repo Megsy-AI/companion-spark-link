@@ -1,4 +1,4 @@
-import { admin, alibabaKey, corsHeaders, DASHSCOPE_BASE, json, loadSubscription } from "../_shared/ai.ts";
+import { admin, alibabaKey, corsHeaders, DASHSCOPE_BASE, json, loadSubscription } from "./shared.ts";
 
 const CHAT_MODEL = "qwen-plus";
 const CODE_MODEL = "qwen3-coder-plus";

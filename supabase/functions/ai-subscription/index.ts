@@ -1,4 +1,4 @@
-import { admin, corsHeaders, json, loadSubscription, PLAN_LIMITS, type PlanId } from "../_shared/ai.ts";
+import { admin, corsHeaders, json, loadSubscription, PLAN_LIMITS, type PlanId } from "./shared.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
