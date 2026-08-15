@@ -40,6 +40,10 @@ const ServersPage = () => {
   const [loading, setLoading] = useState(true);
   const [myNfts, setMyNfts] = useState<{ id: string; name: string; image_url: string }[]>([]);
   const [starBusy, setStarBusy] = useState<string | null>(null);
+  const [tonBusy, setTonBusy] = useState<string | null>(null);
+  const [tonConnectUI] = useTonConnectUI();
+  const walletAddress = useTonAddress();
+
 
   useEffect(() => { void loadServers(); void loadMyNfts(); }, []);
 
