@@ -141,7 +141,7 @@ export const sendTonPayment = async (
     // No `from` / `network` fields: some wallets reject the request when the
     // address format they report differs from the one we echo back.
     const result = await tonConnectUI.sendTransaction({
-      validUntil: Math.floor(Date.now() / 1000) + 600,
+      validUntil: Math.floor(Date.now() / 1000) + 300,
       messages: [message],
     });
     if (!result?.boc) {
