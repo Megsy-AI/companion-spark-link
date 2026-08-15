@@ -605,10 +605,13 @@ serve(async (req) => {
         const minNano = (expectedNano * 96n) / 100n;
         const maxNano = (expectedNano * 104n) / 100n;
         const treasury = 'UQAp1QxnLJ2z44IooUovvtVShw7hJBEdxCRV3RlbCYC3D8qj';
-        // Compare only the raw hash part of the sender address (skip workchain / bounce flags).
-        const senderTail = String(body.sender ?? '').trim().slice(-40).toLowerCase();
+        // Only raw addresses ("0:<64 hex>") can be compared safely; user-friendly
+        // base64 addresses (UQ.../EQ...) are skipped so they never block a real payment.
+        const rawSender = String(body.sender ?? '').trim().toLowerCase();
+        const senderTail = /^-?\d+:[0-9a-f]{64}$/.test(rawSender) ? rawSender.slice(-40) : '';
         const WINDOW_SECONDS = 900; // TON can take a couple of minutes to settle.
         let matched: { hash: string; value: string } | null = null;
+        let fallback: { hash: string; value: string } | null = null;
         let lastError = '';
 
         const fromTonapi = async () => {
@@ -625,11 +628,12 @@ serve(async (req) => {
             if (now - Number(t?.utime ?? 0) > WINDOW_SECONDS) continue;
             const value = BigInt(inMsg?.value ?? '0');
             if (value < minNano || value > maxNano) continue;
+            const hit = { hash: String(t?.hash ?? ''), value: String(value) };
             if (senderTail) {
               const src = String(inMsg?.source?.address ?? '').toLowerCase();
-              if (!src.endsWith(senderTail)) continue;
+              if (!src.endsWith(senderTail)) { fallback ??= hit; continue; }
             }
-            return { hash: String(t?.hash ?? ''), value: String(value) };
+            return hit;
           }
           return null;
         };
@@ -660,6 +664,10 @@ serve(async (req) => {
           if (matched) break;
           try { matched = await fromToncenter(); } catch (e) { lastError = String(e); }
         }
+
+        // A payment with the right amount inside the window, but from an address we
+        // could not match, is still accepted rather than lost.
+        if (!matched && fallback) matched = fallback;
 
         result = matched
           ? { verified: true, tx_hash: matched.hash, amount_nano: matched.value }

@@ -95,7 +95,14 @@ const AnimatedRoutes = () => {
 };
 
 const App = () => (
-  <TonConnectUIProvider manifestUrl="https://nova.megsyai.com/tonconnect-manifest.json">
+  <TonConnectUIProvider
+    manifestUrl="https://nova.megsyai.com/tonconnect-manifest.json"
+    actionsConfiguration={{
+      // Bring the user back to the mini app after signing in the wallet.
+      twaReturnUrl: "https://t.me/Noveaibot/App",
+      returnStrategy: "back",
+    }}
+  >
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Sonner position="top-center" />
