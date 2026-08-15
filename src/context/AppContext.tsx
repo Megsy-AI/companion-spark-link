@@ -92,7 +92,29 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     tg.expand();
     try { tg.requestFullscreen?.(); } catch {}
     try { tg.disableVerticalSwipes?.(); } catch {}
+    try { tg.setBackgroundColor?.("#ffffff"); } catch {}
+    try { tg.setHeaderColor?.("#ffffff"); } catch {}
+
+    // Keep the app content clear of Telegram's own header / status bar.
+    const applyInsets = () => {
+      const top = Math.max(
+        Number(tg.contentSafeAreaInset?.top ?? 0),
+        Number(tg.safeAreaInset?.top ?? 0),
+        tg.isFullscreen ? 56 : 0,
+      );
+      document.documentElement.style.setProperty("--tg-safe-area-top", `${top}px`);
+    };
+    applyInsets();
+    try { tg.onEvent?.("safeAreaChanged", applyInsets); } catch {}
+    try { tg.onEvent?.("contentSafeAreaChanged", applyInsets); } catch {}
+    try { tg.onEvent?.("fullscreenChanged", applyInsets); } catch {}
+    return () => {
+      try { tg.offEvent?.("safeAreaChanged", applyInsets); } catch {}
+      try { tg.offEvent?.("contentSafeAreaChanged", applyInsets); } catch {}
+      try { tg.offEvent?.("fullscreenChanged", applyInsets); } catch {}
+    };
   }, []);
+
 
   const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
     Promise.race([

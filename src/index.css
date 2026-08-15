@@ -96,7 +96,7 @@
   }
   body {
     @apply text-foreground font-sans;
-    background: transparent;
+    background-color: hsl(var(--background));
     font-family: 'Inter', sans-serif;
     overflow-x: hidden;
     -webkit-user-select: none;
