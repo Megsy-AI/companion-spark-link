@@ -40,12 +40,19 @@ export async function payWithStars(
 ): Promise<string> {
   if (!profileId) throw new Error("Profile not ready yet");
 
-  const { data, error } = await supabase.functions.invoke("stars-pay", {
-    body: { product, profileId, telegramId: telegramId ? Number(telegramId) : null, ...extra },
+  const { data, error } = await supabase.functions.invoke("telegram-bot", {
+    body: {
+      action: "starsInvoice",
+      product,
+      profileId,
+      telegramId: telegramId ? Number(telegramId) : null,
+      ...extra,
+    },
   });
   if (error) throw error;
   const url = (data as { url?: string; error?: string })?.url;
   if (!url) throw new Error((data as { error?: string })?.error ?? "Could not create invoice");
+
 
   const tg = webApp();
   if (tg?.openInvoice) {

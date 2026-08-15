@@ -575,8 +575,16 @@ serve(async (req) => {
         const response = await fetch(`${BASE_URL}/setWebhook`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: webhookUrl }),
+          body: JSON.stringify({
+            url: webhookUrl,
+            allowed_updates: ['message', 'callback_query', 'pre_checkout_query'],
+          }),
         });
+        result = await response.json();
+        break;
+      }
+      case 'getWebhookInfo': {
+        const response = await fetch(`${BASE_URL}/getWebhookInfo`);
         result = await response.json();
         break;
       }
