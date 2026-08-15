@@ -648,10 +648,7 @@ serve(async (req) => {
             if (now - Number(t?.utime ?? 0) > WINDOW_SECONDS) continue;
             const value = BigInt(inMsg?.value ?? '0');
             if (value < minNano || value > maxNano) continue;
-            if (senderTail) {
-              const src = String(inMsg?.source ?? '').toLowerCase();
-              if (!src.endsWith(senderTail)) continue;
-            }
+            // toncenter returns user-friendly addresses, so sender matching is skipped here.
             return { hash: String(t?.transaction_id?.hash ?? ''), value: String(value) };
           }
           return null;
