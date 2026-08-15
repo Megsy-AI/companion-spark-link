@@ -11,10 +11,14 @@ import { swr } from "@/lib/cache";
 import CachedImage from "@/components/CachedImage";
 import { payWithStars, starsForTon } from "@/lib/stars";
 import TelegramStar from "@/components/TelegramStar";
+import { useTonAddress, useTonConnectUI } from "@tonconnect/ui-react";
+import { PaymentError, sendTonPayment } from "@/lib/ton";
+import { purchaseServerForTelegram, verifyTonOnChain } from "@/lib/game-api";
 
 
 const TON_ICON = "/images/gram-icon.png";
 const USDT_ICON = "/images/usdt.png";
+
 
 interface Server {
   id: string;
