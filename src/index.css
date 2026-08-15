@@ -117,6 +117,9 @@
   .pt-safe {
     padding-top: calc(var(--tg-safe-area-top, 0px) + 1.5rem);
   }
+  .pt-safe-lg {
+    padding-top: calc(var(--tg-safe-area-top, 0px) + 3rem);
+  }
   .pt-safe-page {
     padding-top: calc(var(--tg-safe-area-top, 0px) + 5rem);
   }
@@ -196,7 +199,7 @@
 
   /* ---- Black + mint hero ---- */
   .hero-dark {
-    background-color: transparent;
+    background-color: hsl(var(--background));
     color: hsl(160 22% 18%);
   }
   .hero-title {

@@ -232,7 +232,7 @@ export default function AiPage() {
         comment: "Nova AI Pro",
       });
       toast("Verifying your payment on-chain…");
-      const verification = await verifyTonOnChain(PLAN_PRICE_TON, tx.boc);
+      const verification = await verifyTonOnChain(PLAN_PRICE_TON, tx.boc, tonConnectUI.account?.address);
       if (!verification.verified) {
         toast.error("Payment not found on-chain yet. Try again in a moment.");
         return;
@@ -406,7 +406,7 @@ export default function AiPage() {
   };
 
   return (
-    <div className="hero-dark relative flex min-h-[100dvh] flex-col">
+    <div className="hero-dark relative flex min-h-[100dvh] flex-col bg-background">
       {/* soft mint / pink wash matching the rest of the app */}
       <div
         aria-hidden="true"
@@ -417,7 +417,7 @@ export default function AiPage() {
         }}
       />
 
-      <header className="relative z-20 flex items-center justify-between px-5 pt-safe pb-3">
+      <header className="relative z-20 flex items-center justify-between px-5 pt-safe-lg pb-3">
         <button type="button" onClick={reset} className="text-left">
           <span className="hero-title block text-[1.9rem] leading-none">
             Nova <span className="hero-title-italic">AI</span>

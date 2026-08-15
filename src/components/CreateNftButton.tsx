@@ -56,7 +56,7 @@ const CreateNftButton = ({ onCreated }: { onCreated?: () => void }) => {
       });
 
       setStep("Verifying payment on-chain…");
-      const verification = await verifyTonOnChain(PRICE_TON, tx.boc);
+      const verification = await verifyTonOnChain(PRICE_TON, tx.boc, tonConnectUI.account?.address);
       if (!verification.verified) {
         toast({ title: "Payment not verified", variant: "destructive" });
         return;

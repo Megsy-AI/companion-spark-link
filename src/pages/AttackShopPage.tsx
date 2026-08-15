@@ -60,7 +60,7 @@ const AttackShopPage = () => {
       setVerifying(packageKey);
       toast({ title: "Verifying payment...", description: "Checking blockchain confirmation" });
 
-      const verification = await verifyTonOnChain(pkg.price, transaction.boc);
+      const verification = await verifyTonOnChain(pkg.price, transaction.boc, tonConnectUI.account?.address);
 
       if (!verification.verified) {
         setVerifying(null);
