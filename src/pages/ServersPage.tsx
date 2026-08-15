@@ -227,7 +227,9 @@ const ServersPage = () => {
                   </span>
                 )}
               </Button>
+              </div>
             </motion.div>
+
           ))}
         </div>
       )}
