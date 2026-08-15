@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { starsApi, STARS_PRODUCTS } from "../_shared/stars.ts";
+import { starsApi, STARS_PRODUCTS } from "./shared.ts";
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
