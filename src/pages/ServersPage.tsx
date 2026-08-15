@@ -194,9 +194,27 @@ const ServersPage = () => {
                   </span>
                 </div>
               </div>
+              <div className="mt-auto space-y-1.5">
               <Button
                 size="sm"
-                className="mt-auto w-full rounded-xl font-display text-xs glow-primary"
+                variant="outline"
+                className="w-full rounded-xl font-display text-xs"
+                onClick={() => void handleBuyWithTon(server)}
+                disabled={tonBusy === server.id}
+              >
+                {tonBusy === server.id ? (
+                  <span className="animate-pulse">Processing…</span>
+                ) : (
+                  <span className="flex items-center gap-1">
+                    <img src={TON_ICON} alt="Gram" className="w-3 h-3 rounded-full" loading="lazy" decoding="async" />
+                    {Number(server.price_ton)} TON
+                  </span>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                className="w-full rounded-xl font-display text-xs glow-primary"
+
                 onClick={() => void handleBuyWithStars(server)}
                 disabled={starBusy === server.id}
               >
